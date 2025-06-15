@@ -1,2 +1,6 @@
 gradio
 requests
+smolagents
+duckduckgo-search
+transformers
+pandas
