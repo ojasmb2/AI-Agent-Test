@@ -1,0 +1,5 @@
+{"task_id": "sample_1", "model_answer": "42", "reasoning_trace": "Calculating: 15+27\n\nFINAL ANSWER: 42"}
+{"task_id": "sample_2", "model_answer": "Paris", "reasoning_trace": "Based on common knowledge: Paris\n\nFINAL ANSWER: Paris"}
+{"task_id": "sample_3", "model_answer": "366", "reasoning_trace": "Based on common knowledge: 366\n\nFINAL ANSWER: 366"}
+{"task_id": "sample_4", "model_answer": "84", "reasoning_trace": "Calculating: 2*6*7\n\nFINAL ANSWER: 84"}
+{"task_id": "sample_5", "model_answer": "1945", "reasoning_trace": "Based on common knowledge: 1945\n\nFINAL ANSWER: 1945"}

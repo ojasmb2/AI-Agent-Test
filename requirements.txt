@@ -1,2 +1,7 @@
-gradio
 requests
+pandas
+beautifulsoup4
+pillow
+python-dotenv
+pytesseract
+gradio 
