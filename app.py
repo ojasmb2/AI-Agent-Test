@@ -8,16 +8,30 @@ import pandas as pd
 # --- Constants ---
 DEFAULT_API_URL = "https://agents-course-unit4-scoring.hf.space"
 
-# --- Basic Agent Definition ---
-# ----- THIS IS WERE YOU CAN BUILD WHAT YOU WANT ------
+from smolagents.agent import ToolCallingAgent
+from smolagents.models.hf_api import HfApiModel
+from smolagents.tools.duckduckgo import DuckDuckGoSearchTool
+
 class BasicAgent:
     def __init__(self):
-        print("BasicAgent initialized.")
+        print("🔧 Initializing real agent with web search tool...")
+        self.model = HfApiModel(
+            model="mistralai/Mistral-7B-Instruct-v0.2",
+            api_key=os.getenv("HF_API_KEY")
+        )
+        self.agent = ToolCallingAgent(
+            name="gaia_agent",
+            description="Answers GAIA questions using web search and reasoning.",
+            model=self.model,
+            tools=[DuckDuckGoSearchTool()],
+            max_steps=5,
+            verbose=True
+        )
+
     def __call__(self, question: str) -> str:
-        print(f"Agent received question (first 50 chars): {question[:50]}...")
-        fixed_answer = "This is a default answer."
-        print(f"Agent returning fixed answer: {fixed_answer}")
-        return fixed_answer
+        print(f"🚀 Question: {question[:80]}")
+        return self.agent.run(question).strip()
+
 
 def run_and_submit_all( profile: gr.OAuthProfile | None):
     """
