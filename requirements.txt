@@ -1,2 +1,7 @@
 gradio
 requests
+pandas
+llama-index-llms-openai
+llama-index-tools-wikipedia
+llama-index-llms-deepinfra
+llama-index-tools-tavily_research
