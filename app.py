@@ -3,21 +3,11 @@ import gradio as gr
 import requests
 import inspect
 import pandas as pd
+from agent import CuongBasicAgent
 
 # (Keep Constants as is)
 # --- Constants ---
 DEFAULT_API_URL = "https://agents-course-unit4-scoring.hf.space"
-
-# --- Basic Agent Definition ---
-# ----- THIS IS WERE YOU CAN BUILD WHAT YOU WANT ------
-class BasicAgent:
-    def __init__(self):
-        print("BasicAgent initialized.")
-    def __call__(self, question: str) -> str:
-        print(f"Agent received question (first 50 chars): {question[:50]}...")
-        fixed_answer = "This is a default answer."
-        print(f"Agent returning fixed answer: {fixed_answer}")
-        return fixed_answer
 
 def run_and_submit_all( profile: gr.OAuthProfile | None):
     """
@@ -30,6 +20,8 @@ def run_and_submit_all( profile: gr.OAuthProfile | None):
     if profile:
         username= f"{profile.username}"
         print(f"User logged in: {username}")
+        if username != os.getenv("whoami"):
+            return f"You are not {os.getenv('whoami')}", None
     else:
         print("User not logged in.")
         return "Please Login to Hugging Face with the button.", None
@@ -37,10 +29,11 @@ def run_and_submit_all( profile: gr.OAuthProfile | None):
     api_url = DEFAULT_API_URL
     questions_url = f"{api_url}/questions"
     submit_url = f"{api_url}/submit"
+    files_url = f"{api_url}/files/"
 
     # 1. Instantiate Agent ( modify this part to create your agent)
     try:
-        agent = BasicAgent()
+        agent = CuongBasicAgent()
     except Exception as e:
         print(f"Error instantiating agent: {e}")
         return f"Error initializing agent: {e}", None
@@ -79,8 +72,16 @@ def run_and_submit_all( profile: gr.OAuthProfile | None):
         if not task_id or question_text is None:
             print(f"Skipping item with missing task_id or question: {item}")
             continue
+
+        # Manage questions with files
+        if item.get("file_name") and os.path.splitext(item.get("file_name"))[1] in ['.py', '.txt', '.json']:
+            file = requests.get(files_url+task_id, timeout=15).text
+            complete_question_text = f'{question_text}\nThis is the accompanying file:\n{file}'
+        else:
+            complete_question_text = question_text
+            
         try:
-            submitted_answer = agent(question_text)
+            submitted_answer = agent(complete_question_text)
             answers_payload.append({"task_id": task_id, "submitted_answer": submitted_answer})
             results_log.append({"Task ID": task_id, "Question": question_text, "Submitted Answer": submitted_answer})
         except Exception as e:
@@ -99,7 +100,7 @@ def run_and_submit_all( profile: gr.OAuthProfile | None):
     # 5. Submit
     print(f"Submitting {len(answers_payload)} answers to: {submit_url}")
     try:
-        response = requests.post(submit_url, json=submission_data, timeout=60)
+        response = requests.post(submit_url, json=submission_data, timeout=180)
         response.raise_for_status()
         result_data = response.json()
         final_status = (
