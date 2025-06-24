@@ -3,23 +3,37 @@ import gradio as gr
 import requests
 import inspect
 import pandas as pd
+import openai
+from dotenv import load_dotenv
 
-# (Keep Constants as is)
 # --- Constants ---
 DEFAULT_API_URL = "https://agents-course-unit4-scoring.hf.space"
 
+# --- Load environment variables (for OPENAI_API_KEY) ---
+load_dotenv()
+
 # --- Basic Agent Definition ---
-# ----- THIS IS WERE YOU CAN BUILD WHAT YOU WANT ------
 class BasicAgent:
     def __init__(self):
-        print("BasicAgent initialized.")
+        # Set up OpenAI client
+        self.api_key = os.getenv("OPENAI_API_KEY")
+        if not self.api_key:
+            raise ValueError("OPENAI_API_KEY environment variable not set.")
+        self.client = openai.OpenAI(api_key=self.api_key)
+        self.model = "gpt-3.5-turbo"  # Or "gpt-4o", "gpt-4-turbo", etc.
+
     def __call__(self, question: str) -> str:
         print(f"Agent received question (first 50 chars): {question[:50]}...")
-        fixed_answer = "This is a default answer."
-        print(f"Agent returning fixed answer: {fixed_answer}")
-        return fixed_answer
+        response = self.client.chat.completions.create(
+            model=self.model,
+            messages=[{"role": "user", "content": question}],
+            temperature=0
+        )
+        answer = response.choices[0].message.content.strip()
+        print(f"Agent returning answer: {answer}")
+        return answer
 
-def run_and_submit_all( profile: gr.OAuthProfile | None):
+def run_and_submit_all(profile: gr.OAuthProfile | None):
     """
     Fetches all questions, runs the BasicAgent on them, submits all answers,
     and displays the results.
@@ -44,7 +58,7 @@ def run_and_submit_all( profile: gr.OAuthProfile | None):
     except Exception as e:
         print(f"Error instantiating agent: {e}")
         return f"Error initializing agent: {e}", None
-    # In the case of an app running as a hugging Face space, this link points toward your codebase ( usefull for others so please keep it public)
+    # In the case of an app running as a hugging Face space, this link points toward your codebase ( useful for others so please keep it public)
     agent_code = f"https://huggingface.co/spaces/{space_id}/tree/main"
     print(agent_code)
 
@@ -80,7 +94,7 @@ def run_and_submit_all( profile: gr.OAuthProfile | None):
             print(f"Skipping item with missing task_id or question: {item}")
             continue
         try:
-            submitted_answer = agent(question_text)
+            submitted_answer = agent(question_text)  # FIX: use 'agent', not 'self.agent'
             answers_payload.append({"task_id": task_id, "submitted_answer": submitted_answer})
             results_log.append({"Task ID": task_id, "Question": question_text, "Submitted Answer": submitted_answer})
         except Exception as e:
@@ -139,18 +153,15 @@ def run_and_submit_all( profile: gr.OAuthProfile | None):
         results_df = pd.DataFrame(results_log)
         return status_message, results_df
 
-
 # --- Build Gradio Interface using Blocks ---
 with gr.Blocks() as demo:
     gr.Markdown("# Basic Agent Evaluation Runner")
     gr.Markdown(
         """
         **Instructions:**
-
         1.  Please clone this space, then modify the code to define your agent's logic, the tools, the necessary packages, etc ...
         2.  Log in to your Hugging Face account using the button below. This uses your HF username for submission.
         3.  Click 'Run Evaluation & Submit All Answers' to fetch questions, run your agent, submit answers, and see the score.
-
         ---
         **Disclaimers:**
         Once clicking on the "submit button, it can take quite some time ( this is the time for the agent to go through all the questions).
@@ -163,7 +174,6 @@ with gr.Blocks() as demo:
     run_button = gr.Button("Run Evaluation & Submit All Answers")
 
     status_output = gr.Textbox(label="Run Status / Submission Result", lines=5, interactive=False)
-    # Removed max_rows=10 from DataFrame constructor
     results_table = gr.DataFrame(label="Questions and Agent Answers", wrap=True)
 
     run_button.click(
