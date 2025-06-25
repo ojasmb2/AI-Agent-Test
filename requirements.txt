@@ -1,2 +1,8 @@
-gradio
+markdownify
+smolagents
 requests
+duckduckgo_search
+pandas
+langchain
+huggingface_hub
+smolagents[litellm]
