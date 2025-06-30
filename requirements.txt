@@ -1,2 +1,9 @@
 gradio
+transformers
+torch
+pandas
 requests
+openai-whisper
+torchaudio
+pillow
+pytesseract
