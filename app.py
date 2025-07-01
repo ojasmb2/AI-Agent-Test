@@ -3,6 +3,8 @@ import gradio as gr
 import requests
 import inspect
 import pandas as pd
+from smolagent import CodeAgent
+from smolagent.tools.python import PythonInterpreterTool
 
 # (Keep Constants as is)
 # --- Constants ---
@@ -12,12 +14,21 @@ DEFAULT_API_URL = "https://agents-course-unit4-scoring.hf.space"
 # ----- THIS IS WERE YOU CAN BUILD WHAT YOU WANT ------
 class BasicAgent:
     def __init__(self):
-        print("BasicAgent initialized.")
+        print("🔧 Inicializando CodeAgent com ferramenta Python.")
+        tools = [PythonInterpreterTool()]
+        self.agent = CodeAgent(tools=tools)
+
     def __call__(self, question: str) -> str:
-        print(f"Agent received question (first 50 chars): {question[:50]}...")
-        fixed_answer = "This is a default answer."
-        print(f"Agent returning fixed answer: {fixed_answer}")
-        return fixed_answer
+        print(f"🤖 Pergunta recebida: {question[:100]}")
+        response = self.agent.run(question)
+
+        if "FINAL ANSWER:" in response:
+            answer = response.split("FINAL ANSWER:")[-1].strip()
+        else:
+            answer = response.strip()
+
+        print(f"✅ Resposta final: {answer}")
+        return answer
 
 def run_and_submit_all( profile: gr.OAuthProfile | None):
     """
