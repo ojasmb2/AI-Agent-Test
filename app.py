@@ -12,12 +12,26 @@ DEFAULT_API_URL = "https://agents-course-unit4-scoring.hf.space"
 # ----- THIS IS WERE YOU CAN BUILD WHAT YOU WANT ------
 class BasicAgent:
     def __init__(self):
-        print("BasicAgent initialized.")
+        print("Loading Hugging Face LLM pipeline...")
+        self.pipe = pipeline(
+            "text-generation",
+            model="mistralai/Mistral-7B-Instruct-v0.1",
+            device=0 if torch.cuda.is_available() else -1,
+            max_new_tokens=256,
+            do_sample=True,
+            temperature=0.7
+        )
+
     def __call__(self, question: str) -> str:
-        print(f"Agent received question (first 50 chars): {question[:50]}...")
-        fixed_answer = "This is a default answer."
-        print(f"Agent returning fixed answer: {fixed_answer}")
-        return fixed_answer
+        prompt = f"[INST] {question.strip()} [/INST]"
+        try:
+            response = self.pipe(prompt)[0]["generated_text"]
+            # Post-processing to trim the prompt out of the response
+            answer = response.replace(prompt, "").strip()
+            print(f"Generated Answer: {answer[:80]}...")
+            return answer
+        except Exception as e:
+            return f"Error: {e}"
 
 def run_and_submit_all( profile: gr.OAuthProfile | None):
     """
