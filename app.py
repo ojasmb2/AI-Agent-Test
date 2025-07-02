@@ -3,7 +3,12 @@ import gradio as gr
 import requests
 import inspect
 import pandas as pd
+from postpartum_agent import PostpartumResearchAgent
+import requests
+import transformers
 
+# Instantiate your agent
+agent = PostpartumResearchAgent()
 # (Keep Constants as is)
 # --- Constants ---
 DEFAULT_API_URL = "https://agents-course-unit4-scoring.hf.space"
