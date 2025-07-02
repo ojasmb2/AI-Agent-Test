@@ -3,21 +3,26 @@ import gradio as gr
 import requests
 import inspect
 import pandas as pd
+import agentsList
 
 # (Keep Constants as is)
 # --- Constants ---
 DEFAULT_API_URL = "https://agents-course-unit4-scoring.hf.space"
 
 # --- Basic Agent Definition ---
-# ----- THIS IS WERE YOU CAN BUILD WHAT YOU WANT ------
 class BasicAgent:
     def __init__(self):
+        self.genaiAgent = agentsList.create_genai_agent()
         print("BasicAgent initialized.")
     def __call__(self, question: str) -> str:
         print(f"Agent received question (first 50 chars): {question[:50]}...")
-        fixed_answer = "This is a default answer."
-        print(f"Agent returning fixed answer: {fixed_answer}")
-        return fixed_answer
+        task = self.genaiAgent.invoke({
+            "task_id": task_id,
+            "question": question,
+        })
+        final_answer = task.get("final_answer")
+        print(f"Agent returning fixed answer: {final_answer}")
+        return task["final_answer"]
 
 def run_and_submit_all( profile: gr.OAuthProfile | None):
     """
@@ -33,6 +38,18 @@ def run_and_submit_all( profile: gr.OAuthProfile | None):
     else:
         print("User not logged in.")
         return "Please Login to Hugging Face with the button.", None
+
+    # --- Allow only space owner to run agent to avoid misuse ---
+    if not space_id.startswith(username.strip()):
+        print("User is not an owner of the space. Please duplicate space and configure OPENAI_API_KEY, HF_TOKEN, GOOGLE_SEARCH_API_KEY, and GOOGLE_SEARCH_ENGINE_ID environment variables.")
+        return "Please duplicate space to your account to run the agent.", None
+
+    # --- Check for required environment variables ---
+    required_env_vars = ["OPENAI_API_KEY", "HF_TOKEN", "GOOGLE_SEARCH_API_KEY", "GOOGLE_SEARCH_ENGINE_ID"]
+    missing_env_vars = [var for var in required_env_vars if not os.getenv(var)]
+    if missing_env_vars:
+        print(f"Missing environment variables: {', '.join(missing_env_vars)}")
+        return f"Missing environment variables: {', '.join(missing_env_vars)}", None
 
     api_url = DEFAULT_API_URL
     questions_url = f"{api_url}/questions"
@@ -80,7 +97,7 @@ def run_and_submit_all( profile: gr.OAuthProfile | None):
             print(f"Skipping item with missing task_id or question: {item}")
             continue
         try:
-            submitted_answer = agent(question_text)
+            submitted_answer = agent(task_id=task_id, question=question_text)
             answers_payload.append({"task_id": task_id, "submitted_answer": submitted_answer})
             results_log.append({"Task ID": task_id, "Question": question_text, "Submitted Answer": submitted_answer})
         except Exception as e:
