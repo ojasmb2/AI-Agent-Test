@@ -3,6 +3,8 @@ import gradio as gr
 import requests
 import inspect
 import pandas as pd
+from bs4 import BeautifulSoup
+import requests
 
 # (Keep Constants as is)
 # --- Constants ---
@@ -10,14 +12,113 @@ DEFAULT_API_URL = "https://agents-course-unit4-scoring.hf.space"
 
 # --- Basic Agent Definition ---
 # ----- THIS IS WERE YOU CAN BUILD WHAT YOU WANT ------
+
+
+def web_search(query: str) -> list[dict]:
+    """
+    Performs a web search and returns relevant information.
+
+    Args:
+        query: The search query string.
+
+    Returns:
+        A list of dictionaries, where each dictionary represents a search result
+        with keys 'title', 'snippet', and 'url'. Returns an empty list if no
+        results are found or an error occurs.
+    """
+    search_url = f"https://www.google.com/search?q={requests.utils.quote(query)}"
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+    }
+    results = []
+
+    try:
+        response = requests.get(search_url, headers=headers, timeout=10)
+        response.raise_for_status() # Raise an HTTPError for bad responses (4xx or 5xx)
+
+        soup = BeautifulSoup(response.text, 'html.parser')
+
+        # Find search results - this is a basic example and might need adjustment
+        # based on Google's ever-changing HTML structure.
+        # 'div.tF2CMy' is a common class for result blocks as of certain dates.
+        search_results = soup.select('div.tF2CMy')
+
+        if not search_results:
+             # Fallback or alternative selectors if the primary one fails
+             search_results = soup.select('div.g') # Another common class
+
+        for result in search_results:
+            link = result.select_one('a')
+            title = result.select_one('h3')
+            snippet = result.select_one('span.aCOpNe') # Example snippet class
+
+            if link and title:
+                item = {
+                    'title': title.get_text(),
+                    'url': link['href'],
+                    'snippet': snippet.get_text() if snippet else 'No snippet available'
+                }
+                results.append(item)
+
+    except requests.exceptions.RequestException as e:
+        print(f"Error during web search request: {e}")
+    except Exception as e:
+        print(f"An unexpected error occurred during web search: {e}")
+
+    return results
+
+# Example usage (optional, for testing)
+# search_results = web_search("what is the capital of France?")
+# for i, result in enumerate(search_results[:3]): # Print first 3 results
+#     print(f"--- Result {i+1} ---")
+#     print(f"Title: {result.get('title', 'N/A')}")
+#     print(f"URL: {result.get('url', 'N/A')}")
+#     print(f"Snippet: {result.get('snippet', 'N/A')}")
+#     print("-" * 10)
+
 class BasicAgent:
-    def __init__(self):
+  def __init__(self):
         print("BasicAgent initialized.")
+
     def __call__(self, question: str) -> str:
         print(f"Agent received question (first 50 chars): {question[:50]}...")
-        fixed_answer = "This is a default answer."
-        print(f"Agent returning fixed answer: {fixed_answer}")
-        return fixed_answer
+
+        # Simple logic to determine if a web search is needed
+        question_lower = question.lower()
+        search_keywords = ["what is", "how to", "where is", "who is", "when did", "define", "explain", "tell me about"]
+        needs_search = any(keyword in question_lower for keyword in search_keywords) or "?" in question
+
+        if needs_search:
+            print(f"Question likely requires search. Searching for: {question}")
+            search_results = web_search(question) # Call the web_search function
+
+            if search_results:
+                # Process search results to formulate an answer
+                answer_parts = []
+                for i, result in enumerate(search_results[:3]): # Use top 3 results
+                    if result.get('snippet'):
+                        answer_parts.append(f"Snippet {i+1}: {result['snippet']}")
+                    elif result.get('title'):
+                         answer_parts.append(f"Result {i+1} Title: {result['title']}")
+
+
+                if answer_parts:
+                    formulated_answer = "Based on web search:\n" + "\n".join(answer_parts)
+                    print(f"Agent returning search-based answer: {formulated_answer[:100]}...")
+                    return formulated_answer
+                else:
+                    print("Web search returned results but no useful snippets/titles found.")
+                    return "I couldn't find a specific answer from the web search results."
+
+            else:
+                print("Web search returned no results.")
+                return "I couldn't find any relevant information on the web for your question."
+        else:
+            # If no search is needed, return a default or simple response
+            print("Question does not appear to require search. Returning fixed answer.")
+            fixed_answer = "How can I help you?"
+            return fixed_answer
+
 
 def run_and_submit_all( profile: gr.OAuthProfile | None):
     """
@@ -91,7 +192,7 @@ def run_and_submit_all( profile: gr.OAuthProfile | None):
         print("Agent did not produce any answers to submit.")
         return "Agent did not produce any answers to submit.", pd.DataFrame(results_log)
 
-    # 4. Prepare Submission 
+    # 4. Prepare Submission
     submission_data = {"username": username.strip(), "agent_code": agent_code, "answers": answers_payload}
     status_update = f"Agent finished. Submitting {len(answers_payload)} answers for user '{username}'..."
     print(status_update)
@@ -138,6 +239,15 @@ def run_and_submit_all( profile: gr.OAuthProfile | None):
         print(status_message)
         results_df = pd.DataFrame(results_log)
         return status_message, results_df
+    
+    def __init__(self):
+        print("BasicAgent initialized.")
+    def __call__(self, question: str) -> str:
+        print(f"Agent received question (first 50 chars): {question[:50]}...")
+        fixed_answer = "How i can help you?"
+        print(f"Agent returning fixed answer: {fixed_answer}")
+        return fixed_answer
+
 
 
 # --- Build Gradio Interface using Blocks ---
@@ -193,4 +303,5 @@ if __name__ == "__main__":
     print("-"*(60 + len(" App Starting ")) + "\n")
 
     print("Launching Gradio Interface for Basic Agent Evaluation...")
-    demo.launch(debug=True, share=False)
+    demo.launch(debug=True, share=False)7
+    
