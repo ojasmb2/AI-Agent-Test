@@ -16,3 +16,4 @@ pymupdf
 wikipedia
 pgvector
 python-dotenv
+ollama
