@@ -8,6 +8,7 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_groq import ChatGroq
 from langchain_huggingface import ChatHuggingFace, HuggingFaceEndpoint, HuggingFaceEmbeddings
 from langchain_community.tools.tavily_search import TavilySearchResults
+from langchain_community.llms import Ollama
 from langchain_community.document_loaders import WikipediaLoader
 from langchain_community.document_loaders import ArxivLoader
 from langchain_community.vectorstores import SupabaseVectorStore
@@ -166,7 +167,8 @@ def build_graph(provider: str = "groq"):
         # TODO: Add huggingface endpoint
         llm = ChatHuggingFace(
             llm=HuggingFaceEndpoint(
-                url="https://api-inference.huggingface.co/models/Meta-DeepLearning/llama-2-7b-chat-hf",
+                #url="https://api-inference.huggingface.co/models/Meta-DeepLearning/llama-2-7b-chat-hf",
+                repo_id="meta-llama/Meta-Llama-3-70B-Instruct",
                 temperature=0,
             ),
         )
