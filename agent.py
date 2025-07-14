@@ -154,7 +154,7 @@ tools = [
 ]
 
 # Build graph function
-def build_graph(provider: str = "groq"):
+def build_graph(provider: str = "ollama"):
     """Build the graph"""
     # Load environment variables from .env file
     if provider == "google":
@@ -172,6 +172,12 @@ def build_graph(provider: str = "groq"):
                 temperature=0,
             ),
         )
+    elif provider == "ollama":
+        llm = Ollama(
+            model="llama3",
+            temperature=0,
+        )
+
     else:
         raise ValueError("Invalid provider. Choose 'google', 'groq' or 'huggingface'.")
     # Bind tools to LLM
