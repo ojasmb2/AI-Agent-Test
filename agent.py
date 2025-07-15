@@ -8,7 +8,7 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_groq import ChatGroq
 from langchain_huggingface import ChatHuggingFace, HuggingFaceEndpoint, HuggingFaceEmbeddings
 from langchain_community.tools.tavily_search import TavilySearchResults
-from langchain_community.llms import Ollama
+from langchain_ollama import OllamaLLM
 from langchain_community.document_loaders import WikipediaLoader
 from langchain_community.document_loaders import ArxivLoader
 from langchain_community.vectorstores import SupabaseVectorStore
@@ -16,6 +16,7 @@ from langchain_core.messages import SystemMessage, HumanMessage
 from langchain_core.tools import tool
 from langchain.tools.retriever import create_retriever_tool
 from supabase.client import Client, create_client
+from langchain_core.messages import AIMessage
 
 load_dotenv()
 
@@ -173,7 +174,7 @@ def build_graph(provider: str = "ollama"):
             ),
         )
     elif provider == "ollama":
-        llm = Ollama(
+        llm = OllamaLLM(
             model="llama3",
             temperature=0,
         )
@@ -181,12 +182,16 @@ def build_graph(provider: str = "ollama"):
     else:
         raise ValueError("Invalid provider. Choose 'google', 'groq' or 'huggingface'.")
     # Bind tools to LLM
-    llm_with_tools = llm.bind_tools(tools)
+    # No longer needed with Ollama update
+    #llm_with_tools = llm.bind_tools(tools)
 
     # Node
     def assistant(state: MessagesState):
         """Assistant node"""
-        return {"messages": [llm_with_tools.invoke(state["messages"])]}
+        response = llm.invoke(state["messages"])
+        return {
+            "messages": state["messages"] + [AIMessage(content=response)]
+        }
     
     def retriever(state: MessagesState):
         """Retriever node"""
