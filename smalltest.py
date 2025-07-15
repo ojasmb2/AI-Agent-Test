@@ -9,7 +9,7 @@ load_dotenv()
 graph = build_graph(provider="ollama")
 
 # Test input
-query = "What is the article by Carolyn Collins Petersen about?"
+query = "Who designed robi house and what is one other building that this architect has designed?"
 state_input = {
     "messages": [HumanMessage(content=query)]
 }
