@@ -9,7 +9,7 @@ load_dotenv()
 graph = build_graph(provider="ollama")
 
 # Test input
-query = "Show me the daily closing prices for AAPL from 2024-01-01 to 2024-06-30."
+query = "What was the largest drop in price of AAPL from closing to opening and what were the dates?"
 state_input = {
     "messages": [HumanMessage(content=query)]
 }
