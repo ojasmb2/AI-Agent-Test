@@ -1,5 +1,6 @@
 #agent goes here
 import os
+import requests
 from dotenv import load_dotenv
 from langgraph.graph import START, StateGraph, MessagesState
 from langgraph.prebuilt import tools_condition
@@ -115,6 +116,45 @@ def arvix_search(query: str) -> str:
         ])
     return {"arvix_results": formatted_search_docs}
 
+@tool
+def market_trends(symbol: str, start_date: str, end_date: str) -> dict:
+    """
+    Fetch historic daily adjusted market data for a given symbol using Alpha Vantage.
+
+    Args:
+        symbol: Stock symbol (e.g., AAPL, MSFT)
+        start_date: Start date in YYYY-MM-DD
+        end_date: End date in YYYY-MM-DD
+
+    Returns:
+        Dict with date keys and OHLCV values.
+    """
+    api_key = os.getenv("ALPHA_VANTAGE_API_KEY")
+    url = (
+        f"https://www.alphavantage.co/query"
+        f"?function=TIME_SERIES_DAILY_ADJUSTED"
+        f"&symbol={symbol}"
+        f"&outputsize=full"
+        f"&apikey={api_key}"
+    )
+    response = requests.get(url)
+    if response.status_code != 200:
+        raise Exception(f"API request failed with status code {response.status_code}")
+
+    data = response.json()
+
+    if "Time Series (Daily)" not in data:
+        raise Exception(f"Invalid response: {data}")
+
+    # Filter by start_date and end_date
+    all_data = data["Time Series (Daily)"]
+    filtered_data = {
+        date: values for date, values in all_data.items()
+        if start_date <= date <= end_date
+    }
+
+    return filtered_data
+
 
 
 # load the system prompt from the file
@@ -152,6 +192,7 @@ tools = [
     wiki_search,
     web_search,
     arvix_search,
+    market_trends,
 ]
 
 # Build graph function

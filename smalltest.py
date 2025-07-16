@@ -9,7 +9,7 @@ load_dotenv()
 graph = build_graph(provider="ollama")
 
 # Test input
-query = "Who designed robi house and what is one other building that this architect has designed?"
+query = "Show me the daily closing prices for AAPL from 2024-01-01 to 2024-06-30."
 state_input = {
     "messages": [HumanMessage(content=query)]
 }
