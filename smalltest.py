@@ -9,7 +9,7 @@ load_dotenv()
 graph = build_graph(provider="ollama")
 
 # Test input
-query = "What was the largest drop in price of AAPL from closing to opening and what were the dates?"
+query = "Which actor appears in the most films?"
 state_input = {
     "messages": [HumanMessage(content=query)]
 }

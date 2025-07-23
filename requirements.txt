@@ -13,7 +13,7 @@ huggingface_hub
 supabase
 arxiv
 pymupdf
-wikipedia
+wikipedia-api
 pgvector
 python-dotenv
 ollama

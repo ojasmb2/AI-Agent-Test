@@ -1,6 +1,7 @@
 #agent goes here
 import os
 import requests
+import sqlite3
 from dotenv import load_dotenv
 from langgraph.graph import START, StateGraph, MessagesState
 from langgraph.prebuilt import tools_condition
@@ -116,47 +117,78 @@ def arvix_search(query: str) -> str:
         ])
     return {"arvix_results": formatted_search_docs}
 
+
 @tool
-def market_trends(symbol: str, start_date: str, end_date: str) -> dict:
+def sakila_sql_generator(query: str) -> str:
     """
-    Fetch historic daily adjusted market data for a given symbol using Alpha Vantage.
-
+    Generates a SQL query for the Sakila SQLite database based on a natural language question.
+    Does NOT execute the query or access a database — it only returns the SQL code.
+    
     Args:
-        symbol: Stock symbol (e.g., AAPL, MSFT)
-        start_date: Start date in YYYY-MM-DD
-        end_date: End date in YYYY-MM-DD
-
+        query: A natural language question about the Sakila DVD rental database.
+        
     Returns:
-        Dict with date keys and OHLCV values.
+        A string containing the SQL query.
     """
-    api_key = os.getenv("ALPHA_VANTAGE_API_KEY")
-    url = (
-        f"https://www.alphavantage.co/query"
-        f"?function=TIME_SERIES_DAILY_ADJUSTED"
-        f"&symbol={symbol}"
-        f"&outputsize=full"
-        f"&apikey={api_key}"
-    )
-    response = requests.get(url)
-    if response.status_code != 200:
-        raise Exception(f"API request failed with status code {response.status_code}")
+    system_prompt = """
+You are an AI SQL assistant. You only generate valid SQL queries for the Sakila SQLite database based on user questions. 
+Do not explain anything or return results. Just return the SQL query enclosed in triple backticks.
 
-    data = response.json()
+Sakila Schema (simplified):
+- film(film_id, title, description, release_year, language_id, rental_rate, length, rating)
+- actor(actor_id, first_name, last_name)
+- film_actor(film_id, actor_id)
+- customer(customer_id, first_name, last_name, address_id, store_id, email, active)
+- rental(rental_id, rental_date, inventory_id, customer_id, return_date, staff_id)
+- inventory(inventory_id, film_id, store_id)
+- store(store_id, manager_staff_id, address_id)
+- staff(staff_id, first_name, last_name, address_id, store_id)
+- payment(payment_id, customer_id, staff_id, rental_id, amount, payment_date)
+- category(category_id, name)
+- film_category(film_id, category_id)
 
-    if "Time Series (Daily)" not in data:
-        raise Exception(f"Invalid response: {data}")
+If the user question cannot be answered with this schema, return:
+```sql
+-- Cannot answer the question with the available Sakila schema
+"""
 
-    # Filter by start_date and end_date
-    all_data = data["Time Series (Daily)"]
-    filtered_data = {
-        date: values for date, values in all_data.items()
-        if start_date <= date <= end_date
-    }
+@tool
+def sakila_sql_executor(query: str) -> str:
+    """
+    Executes a SQL query on the local Sakila SQLite database and returns the result.
+    
+    Args:
+        query: A SQL query string. Must be a valid SELECT statement.
+    
+    Returns:
+        The result of the query as a JSON-style string or formatted table.
+    """
+    try:
+        # Path to your local Sakila SQLite file
+        db_path = "databases/sakila.db" 
 
-    return filtered_data
+        # Connect to SQLite and run the query
+        conn = sqlite3.connect(db_path)
+        cursor = conn.cursor()
 
+        cursor.execute(query)
+        columns = [description[0] for description in cursor.description]
+        rows = cursor.fetchall()
 
+        # Format results
+        results = [dict(zip(columns, row)) for row in rows]
 
+        cursor.close()
+        conn.close()
+
+        # Return as JSON-like string
+        if not results:
+            return "Query executed successfully, but no results were returned."
+        return str(results)
+
+    except Exception as e:
+        return f"Error executing SQL query: {str(e)}"
+    
 # load the system prompt from the file
 with open("system_prompt.txt", "r", encoding="utf-8") as f:
     system_prompt = f.read()
@@ -192,7 +224,8 @@ tools = [
     wiki_search,
     web_search,
     arvix_search,
-    market_trends,
+    sakila_sql_generator,
+    sakila_sql_executor
 ]
 
 # Build graph function
