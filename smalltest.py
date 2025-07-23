@@ -9,7 +9,7 @@ load_dotenv()
 graph = build_graph(provider="ollama")
 
 # Test input
-query = "Which actor appears in the most films?"
+query = "Which actor appears in the most films? Choose one of the films from that actor on random and list all of the other actors from that film."
 state_input = {
     "messages": [HumanMessage(content=query)]
 }
