@@ -1,28 +1,37 @@
 import streamlit as st
-import requests
+from langchain_core.messages import HumanMessage, AIMessage, BaseMessage
+from agent import build_graph  # from your agent.py
 
-# Backend API endpoint
-API_URL = "http://localhost:8000/query"  # Change this to your actual endpoint
+st.set_page_config(page_title="LangGraph Agent", layout="centered")
 
-st.set_page_config(page_title="LangGraph Agent UI", layout="centered")
+# Build your LangGraph graph once
+graph = build_graph(provider="ollama")
 
-st.title("🧠 LangGraph Agent Interface")
-st.markdown("Ask your question and the AI agent will respond using the Sakila database!")
+st.title("🎬 LangGraph Agent - Sakila DB")
 
-# Input field
-user_question = st.text_input("Your question:")
+user_input = st.text_input("Ask a question about the Sakila database:")
 
-# Button
-if st.button("Submit") and user_question:
-    with st.spinner("Thinking..."):
-        try:
-            response = requests.post(API_URL, json={"question": user_question})
-            if response.status_code == 200:
-                result = response.json()
-                # You might need to adjust this depending on your API format
-                st.success("Agent response:")
-                st.code(result.get("response", "No 'response' field in API result."))
-            else:
-                st.error(f"Error: {response.status_code} - {response.text}")
-        except Exception as e:
-            st.error(f"Request failed: {e}")
+if "chat_history" not in st.session_state:
+    st.session_state.chat_history = []
+
+if st.button("Submit") and user_input:
+    st.session_state.chat_history.append(HumanMessage(content=user_input))
+
+    # LangGraph expects state input like this:
+    state_input = {"messages": st.session_state.chat_history}
+
+    # Run the agent
+    response = graph.invoke(state_input)
+
+    # Extract the new AI message
+    ai_messages = [
+        msg for msg in response.get("messages", [])
+        if isinstance(msg, AIMessage)
+    ]
+    if ai_messages:
+        st.session_state.chat_history.append(ai_messages[-1])
+
+# Display the conversation
+for msg in st.session_state.chat_history:
+    role = "🧑 You" if isinstance(msg, HumanMessage) else "🤖 Agent"
+    st.markdown(f"**{role}:** {msg.content}")
