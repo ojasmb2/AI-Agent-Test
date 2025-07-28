@@ -1,6 +1,5 @@
 #agent goes here
 import os
-import requests
 import sqlite3
 from dotenv import load_dotenv
 from langgraph.graph import START, StateGraph, MessagesState
