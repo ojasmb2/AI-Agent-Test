@@ -1,5 +1,6 @@
 #agent goes here
 import os
+import requests
 import sqlite3
 from dotenv import load_dotenv
 from langgraph.graph import START, StateGraph, MessagesState
@@ -20,7 +21,6 @@ from supabase.client import Client, create_client
 from langchain_core.messages import AIMessage
 
 load_dotenv()
-
 
 #Defualt operators:
 
@@ -188,7 +188,7 @@ def sakila_sql_executor(query: str) -> str:
 
     except Exception as e:
         return f"Error executing SQL query: {str(e)}"
-    
+
 # load the system prompt from the file
 with open("system_prompt.txt", "r", encoding="utf-8") as f:
     system_prompt = f.read()
@@ -266,14 +266,19 @@ def build_graph(provider: str = "ollama"):
         return {
             "messages": state["messages"] + [AIMessage(content=response)]
         }
-    
+
     def retriever(state: MessagesState):
         """Retriever node"""
         similar_question = vector_store.similarity_search(state["messages"][0].content)
-        example_msg = HumanMessage(
-            content=f"Here I provide a similar question and answer for reference: \n\n{similar_question[0].page_content}",
-        )
-        return {"messages": [sys_msg] + state["messages"] + [example_msg]}
+    
+        if similar_question:
+            example_msg = HumanMessage(
+                content=f"Here I provide a similar question and answer for reference: \n\n{similar_question[0].page_content}"
+            )
+            return {"messages": [sys_msg] + state["messages"] + [example_msg]}
+        else:
+            # Fallback if no similar question is found
+            return {"messages": [sys_msg] + state["messages"]}
 
     builder = StateGraph(MessagesState)
     builder.add_node("retriever", retriever)
@@ -291,4 +296,3 @@ def build_graph(provider: str = "ollama"):
     return builder.compile()
 
 # test
-
