@@ -190,8 +190,16 @@ def sakila_sql_executor(query: str) -> str:
         return f"Error executing SQL query: {str(e)}"
 
 # load the system prompt from the file
-with open("system_prompt.txt", "r", encoding="utf-8") as f:
-    system_prompt = f.read()
+
+import os
+
+# Safely load system_prompt.txt
+try:
+    with open("system_prompt.txt", "r", encoding="utf-8") as f:
+        system_prompt = f.read()
+except FileNotFoundError:
+    system_prompt = "You are a helpful AI assistant."  # Default fallback prompt
+
 
 # System message
 sys_msg = SystemMessage(content=system_prompt)
