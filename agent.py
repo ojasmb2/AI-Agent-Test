@@ -271,8 +271,10 @@ def build_graph(provider: str = "ollama"):
     def assistant(state: MessagesState):
         """Assistant node"""
         response = llm.invoke(state["messages"])
+    
+        # Only return the SQL string — leave execution to the MCP server
         return {
-            "messages": state["messages"] + [AIMessage(content=response)]
+            "messages": state["messages"] + [AIMessage(content=response.content.strip())]
         }
 
     def retriever(state: MessagesState):
