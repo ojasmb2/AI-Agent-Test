@@ -152,42 +152,6 @@ If the user question cannot be answered with this schema, return:
 -- Cannot answer the question with the available Sakila schema
 """
 
-@tool
-def sakila_sql_executor(query: str) -> str:
-    """
-    Executes a SQL query on the local Sakila SQLite database and returns the result.
-    
-    Args:
-        query: A SQL query string. Must be a valid SELECT statement.
-    
-    Returns:
-        The result of the query as a JSON-style string or formatted table.
-    """
-    try:
-        # Path to your local Sakila SQLite file
-        db_path = "databases/sakila.db" 
-
-        # Connect to SQLite and run the query
-        conn = sqlite3.connect(db_path)
-        cursor = conn.cursor()
-
-        cursor.execute(query)
-        columns = [description[0] for description in cursor.description]
-        rows = cursor.fetchall()
-
-        # Format results
-        results = [dict(zip(columns, row)) for row in rows]
-
-        cursor.close()
-        conn.close()
-
-        # Return as JSON-like string
-        if not results:
-            return "Query executed successfully, but no results were returned."
-        return str(results)
-
-    except Exception as e:
-        return f"Error executing SQL query: {str(e)}"
 
 # load the system prompt from the file
 
