@@ -1,41 +1,32 @@
 
 import streamlit as st
 import requests
-import json
 
-# Backend MCP server endpoint
-MCP_ENDPOINT = "http://127.0.0.1:5001/mcp/invoke"
+st.set_page_config(page_title="Ask the LangGraph Agent (MCP)")
 
-st.set_page_config(page_title="Sakila Agent", layout="centered")
 st.title("🎬 Ask the LangGraph Agent (MCP)")
+st.write("Ask a question about the Sakila database:")
 
-# Input field
-query = st.text_input("Ask a question about the Sakila database:")
+query = st.text_input(" ", placeholder="e.g. Which actor appears in the most films?")
+sql_only = st.checkbox("Return SQL only", value=False)
 
-# Send to agent on submit
 if st.button("Send") and query:
     try:
-        with st.spinner("Thinking..."):
-            res = requests.post(
-                MCP_ENDPOINT,
-                json={"input": query},
-                timeout=30
-            )
-            res.raise_for_status()
-            output = res.json().get("output", {})
+        response = requests.post(
+            "http://127.0.0.1:5001/mcp/invoke",  # must match your FastAPI server
+            json={"query": query, "sql_only": sql_only},
+            timeout=20,
+        )
+        response.raise_for_status()
+        data = response.json()
 
-            st.markdown("### 🤖 Agent Response:")
-
-            if isinstance(output, list):
-                for msg in output:
-                    role = msg.get("role", "assistant").capitalize()
-                    content = msg.get("content", "")
-                    emoji = "🧑" if role.lower() == "user" else "🤖"
-                    st.markdown(f"{emoji} **{role}:** {content}")
-            elif isinstance(output, (dict, list)):
-                st.json(output)
-            else:
-                st.markdown(f"> {output}")
-
-    except Exception as e:
-        st.error(f"❌ Error: {e}")
+        if "error" in data:
+            st.error(f"❌ Error: {data['error']}")
+        else:
+            st.success("✅ Response Received")
+            st.code(data["sql"], language="sql")
+            if not sql_only and "result" in data:
+                st.write("📊 Result:")
+                st.dataframe(data["result"])
+    except requests.exceptions.RequestException as e:
+        st.error(f"❌ Request failed: {str(e)}")
