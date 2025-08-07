@@ -1,32 +1,37 @@
-
 import streamlit as st
 import requests
 
-st.set_page_config(page_title="Ask the LangGraph Agent (MCP)")
+st.set_page_config(page_title="Sakila SQL Agent", page_icon="🎬")
+st.title("🎬 Sakila SQL Assistant")
 
-st.title("🎬 Ask the LangGraph Agent (MCP)")
-st.write("Ask a question about the Sakila database:")
+st.markdown("""
+This assistant can:
+- Generate SQL queries for the Sakila database
+- Execute them **only if you say so**
+""")
 
-query = st.text_input(" ", placeholder="e.g. Which actor appears in the most films?")
-sql_only = st.checkbox("Return SQL only", value=False)
+user_input = st.text_input("Ask a question about the Sakila database:", 
+                          placeholder="e.g., Show all movies released in 2006")
 
-if st.button("Send") and query:
-    try:
-        response = requests.post(
-            "http://127.0.0.1:5001/mcp/invoke",  # must match your FastAPI server
-            json={"query": query, "sql_only": sql_only},
-            timeout=20,
-        )
-        response.raise_for_status()
-        data = response.json()
+if st.button("Submit") and user_input:
+    with st.spinner("Thinking..."):
+        try:
+            res = requests.post("http://localhost:8000", json={"input": user_input})
+            res.raise_for_status()
+            data = res.json()
 
-        if "error" in data:
-            st.error(f"❌ Error: {data['error']}")
-        else:
-            st.success("✅ Response Received")
-            st.code(data["sql"], language="sql")
-            if not sql_only and "result" in data:
-                st.write("📊 Result:")
-                st.dataframe(data["result"])
-    except requests.exceptions.RequestException as e:
-        st.error(f"❌ Request failed: {str(e)}")
+            # Now read the flat "messages" array
+            messages = data.get("messages", [])
+
+            for msg in messages:
+                # Our Agent returns plain dicts here
+                role = msg.get("type", "")
+                content = msg.get("content", "")
+
+                if role == "human":
+                    st.info(f"**You:** {content}")
+                else:
+                    st.success(f"**Assistant:**\n\n{content}")
+
+        except Exception as e:
+            st.error(f"Error: {e}")
