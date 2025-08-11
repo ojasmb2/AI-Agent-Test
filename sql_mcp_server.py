@@ -4,8 +4,8 @@ from mcp.server.fastmcp import FastMCP
 # Create FastMCP instance
 mcp = FastMCP("SQLExecutor")
 
-# Connect to SQLite database
-conn = sqlite3.connect("sakila.db")
+# Connect to SQLite database with thread safety
+conn = sqlite3.connect("sakila.db", check_same_thread=False)
 
 @mcp.tool()
 def execute_query(query: str) -> list:
@@ -14,7 +14,6 @@ def execute_query(query: str) -> list:
     cursor.execute(query)
     return cursor.fetchall()
 
-# ✅ Start the FastMCP server
 if __name__ == "__main__":
-    print("✅ Starting MCP server on http://localhost:5001 ...")
+    print("✅ Starting MCP server on http://localhost:5001 …")
     mcp.run()
