@@ -2,7 +2,7 @@ import streamlit as st
 import requests
 
 st.set_page_config(page_title="Sakila SQL Agent", page_icon="🎬")
-st.title("🎬 Sakila SQL Assistant")
+st.title("Sakila SQL Agent")
 
 st.markdown("""
 This assistant can:

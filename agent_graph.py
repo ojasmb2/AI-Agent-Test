@@ -6,7 +6,6 @@ from langchain.schema import HumanMessage, SystemMessage
 from langchain.tools import Tool
 from langchain.agents import initialize_agent, AgentType
 
-# Load API key and prompts
 load_dotenv()
 try:
     with open("system_prompt.txt", encoding="utf-8") as f:
@@ -17,11 +16,9 @@ except FileNotFoundError:
         "Use the provided tools: generate_sql to build SQL queries, and sql_executor to run them."
     )
 
-# Define tools
 
 def generate_sql(question: str) -> str:
     """Creates a SQL query for the Sakila database based on a user question."""
-    # Example: count actor appearances
     if 'most films' in question.lower():
         return (
             "SELECT a.actor_id, a.first_name || ' ' || a.last_name AS actor, "
@@ -32,7 +29,7 @@ def generate_sql(question: str) -> str:
             "ORDER BY film_count DESC "
             "LIMIT 1;"
         )
-    # Fallback: simple search
+    # Fallback
     return f"SELECT * FROM film WHERE title LIKE '%{question}%';"
 
 
@@ -44,10 +41,8 @@ def sql_executor(sql: str) -> str:
         )
         resp.raise_for_status()
         result = resp.json().get("result", [])
-        # Format rows
         if not result:
             return "No rows returned."
-        # Convert list of tuples to string table
         header = result[0].keys() if isinstance(result[0], dict) else []
         rows = [list(r.values()) for r in result] if isinstance(result[0], dict) else result
         lines = []
@@ -60,7 +55,6 @@ def sql_executor(sql: str) -> str:
     except Exception as e:
         return f"⚠️ Execution error: {e}"
 
-# Build LangChain tools
 generate_sql_tool = Tool(
     name="generate_sql",
     func=generate_sql,
@@ -72,7 +66,6 @@ sql_executor_tool = Tool(
     description="Execute a SQL query against the Sakila database via MCP server"
 )
 
-# Initialize GPT-4o agent with function-calling
 llm = ChatOpenAI(model="gpt-4o", temperature=0)
 agent = initialize_agent(
     tools=[generate_sql_tool, sql_executor_tool],
@@ -81,11 +74,9 @@ agent = initialize_agent(
     verbose=True
 )
 
-# Expose an invoke function for serve.py
 
 def invoke(payload: dict) -> dict:
     """Receives a dict with {'messages': [<HumanMessage>...]} and returns {'messages': [...]}."""
-    # Extract last user content
     messages = payload.get("messages", [])
     user_msg = None
     for m in reversed(messages):
@@ -95,7 +86,6 @@ def invoke(payload: dict) -> dict:
     if user_msg is None:
         return {"messages": [{"type": "ai", "content": "⚠️ No human message found."}]}
 
-    # Run the agent
     try:
         output = agent.run(user_msg)
         return {"messages": [{"type": "ai", "content": output}]}
